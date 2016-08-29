@@ -16,9 +16,9 @@ class Account:
         return self._session
 
     def print_stats(self):
-        print("Username: ", self.username)
-        print("Comment karma: ", self.session.user.comment_karma)
-        print("Link karma: ", self.session.user.link_karma)
+        print('Username: ' + self.username)
+        print('Comment karma: ', self.session.user.comment_karma)
+        print('Link karma: ', self.session.user.link_karma)
 
     def post_text_submission(self, subreddit, title, text):
         """Posts a selftext submission on the given subreddit with the given title and text.
