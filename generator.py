@@ -20,6 +20,7 @@ def parse_url(url):
             print("could not find patch-notes-container")
         else:
             summary = get_summary(container)
+            changes = get_champ_changes(container)
         
     else:
         print("    ERROR status_code: " + str(request.status_code))
@@ -39,7 +40,25 @@ def get_summary(container):
         
     return clean_summary
     
-# removes all whitespaces except spaces and 
+    
+def get_champ_changes(container):
+    clean_changes = ''
+    champion_header = container.find("h2", {"id": "patch-champions"}).parent
+    champion = champion_header.next_sibling
+    
+    while is_champion_change(champion):
+        name = champion.find("h3", {"class": "change-title"})
+        print(name.text)
+        #newline is seperate sibling, skip it
+        champion = champion.next_sibling.next_sibling
+    
+        
+def is_champion_change(content):
+    block = content.find("div", {"class": "patch-change-block"})
+    return block != None
+    
+    
+# removes all whitespaces and replaces them with single spaces
 def format_text(text):
     return " ".join(text.split())
   
