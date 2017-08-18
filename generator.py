@@ -3,13 +3,21 @@ import markovify
 import requests
 import argparse
 
-from reddit.account import Account
+#from reddit.account import Account
 from bs4 import BeautifulSoup
-from config import *
+#from config import *
 
-#relative data directory for storing all generated files
+url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
+url_end = '-notes'
+
+#year:highest_patch
+patches = {5:24, 6:24, 7:16}
+
+#relative data directory for storing parsed patches
 data_dir = "data"
 
+#relative out directory for storing generated patches
+out_dir = "out"
 
 def print_text(text, indentation):
     print((" " * indentation) + text)
@@ -25,7 +33,7 @@ def format_text(text):
     return " ".join(text.split())
 
     
-def parse_url(url):
+def parse_patch(url):
     summary = ""
     request = requests.get(url)
     
@@ -34,15 +42,16 @@ def parse_url(url):
         container = soup.find("div", {"id": "patch-notes-container"})
         
         if container == None:
-            print("could not find patch-notes-container")
+            print("Could not find patch-notes-container")
         else:
             summary = get_summary(container)
             changes = get_champ_changes(container)
         
     else:
-        print("    ERROR status_code: " + str(request.status_code))
-        
-    return summary
+        print_text("ERROR status_code " + str(request.status_code), 4)
+      
+    with open(os.path.join(data_dir, "summaries"), "a") as file:
+        file.write(summary.encode("utf-8") + " ")
     
     
 def get_summary(container):
@@ -63,19 +72,22 @@ def get_champ_changes(container):
     champion_header = container.find("h2", {"id": "patch-champions"}).parent
     champion = champion_header.next_sibling
     
-    if is_champion_change(champion):
-        print_bullet_point("Champions", 4)
-    else:
-        print_bullet_point("No champions found", 4)
+    #todo search until next headline because in the champion
+    #section there can also be random stuff that can then be
+    #filtered out by is_champion (hopefully)
     
-    while is_champion_change(champion):
-        name = champion.find("h3", {"class": "change-title"})
-        print_bullet_point(format_text(name.text), 6)
-        #newline is seperate sibling, skip it
-        champion = champion.next_sibling.next_sibling
+    if not is_champion(champion):
+        print_bullet_point("No champions found", 4)
+    else:
+        print_bullet_point("Champions", 4)
+        while is_champion(champion):
+            name = champion.find("h3", {"class": "change-title"})
+            print_bullet_point(format_text(name.text), 6)
+            #newline is seperate sibling, skip it
+            champion = champion.next_sibling.next_sibling
     
         
-def is_champion_change(content):
+def is_champion(content):
     block = content.find("div", {"class": "patch-change-block"})
     return block != None
   
@@ -97,42 +109,61 @@ def generate_summary(summaries):
   
     
 def parse():
-    summaries = ''
-    base_url = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
-    patches = {5:24, 6:24, 7:16}
-
+    print("cleaning data directory...")
+    clean_dir(data_dir)
+            
     for year, max_number in patches.items():
         for number in range(1, max_number + 1):
-            url = base_url + str(year) + str(number) + '-notes'
+            url = url_start + str(year) + str(number) + url_end
             print_bullet_point(url, 2)
-            summaries = summaries + parse_url(url).encode("utf-8") + ' '
-            
-    with open("summaries", "w") as file:
-        file.write(summaries)
+            parse_patch(url)
     
         
 def generate():
     summaries = ''
-    with open("summaries", "r") as file:
+    with open(os.path.join(data_dir, "summaries"), "r") as file:
         summaries = file.read()
         
     summary = generate_summary(summaries)
     
-    with open("summary", "w") as file:
+    with open(os.path.join(out_dir, "summary"), "w") as file:
         file.write(summary)
+
+        
+def clean():
+    print_bullet_point("data", 2)
+    clean_dir(data_dir)
+    print_bullet_point("out", 2)
+    clean_dir(out_dir)
     
+    
+#delete all files in given dir
+def clean_dir(dir):
+    for file in os.listdir(dir):
+        os.unlink(os.path.join(dir, file))
+        
         
 def main(): 
     parser = argparse.ArgumentParser(description='League of Legends patch notes generator')
+    parser.add_argument('-c', '--clean', action="store_true", default=False,
+                        dest='clean', help='cleanes data and out directories')
     parser.add_argument('-p', '--parse', action="store_true", default=False,
                         dest='parse', help='parses the patch notes and generates content files')
     parser.add_argument('-g', '--generate', action="store_true", default=False,
                         dest='generate', help='generates patch notes out of content files')
     
+    #create needed directories
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
+        
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     
     args = parser.parse_args()
+    
+    if args.clean:
+        print("cleaning directories...")
+        clean()
     
     if args.parse:
         print("parsing patch notes...")
