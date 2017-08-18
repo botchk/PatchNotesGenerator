@@ -65,26 +65,35 @@ def get_summary(container):
         clean_summary = format_text(summary.text)
         
     return clean_summary
-    
+
     
 def get_champ_changes(container):
     clean_changes = ''
-    champion_header = container.find("h2", {"id": "patch-champions"}).parent
-    champion = champion_header.next_sibling
+    champions_header = container.find("h2", {"id": "patch-champions"}).parent
+    champion = champions_header.next_sibling
     
-    #todo search until next headline because in the champion
-    #section there can also be random stuff that can then be
-    #filtered out by is_champion (hopefully)
-    
-    if not is_champion(champion):
-        print_bullet_point("No champions found", 4)
-    else:
-        print_bullet_point("Champions", 4)
-        while is_champion(champion):
+    while not is_header(champion):
+        if not is_champion(champion):
+            print_bullet_point("Not a champion", 6)
+        else:
             name = champion.find("h3", {"class": "change-title"})
             print_bullet_point(format_text(name.text), 6)
-            #newline is seperate sibling, skip it
-            champion = champion.next_sibling.next_sibling
+            
+        #newline is seperate sibling, skip it
+        champion = champion.next_sibling
+        if champion == "\n":
+            champion = champion.next_sibling
+        #print(champion)
+    
+    #print(champion)
+
+def is_header(content):
+    return content.name == "header"
+
+            
+#def is_champion_header(content):
+#    header = content.find("h2", {"id": "patch-champions"})
+#    return header != None
     
         
 def is_champion(content):
@@ -143,6 +152,13 @@ def clean_dir(dir):
         os.unlink(os.path.join(dir, file))
         
         
+#creates directory if it does not exist already
+def make_dir(dir):
+    if not os.path.exists(dir):
+        print("create directory " + dir)
+        os.makedirs(dir) 
+        
+        
 def main(): 
     parser = argparse.ArgumentParser(description='League of Legends patch notes generator')
     parser.add_argument('-c', '--clean', action="store_true", default=False,
@@ -152,12 +168,8 @@ def main():
     parser.add_argument('-g', '--generate', action="store_true", default=False,
                         dest='generate', help='generates patch notes out of content files')
     
-    #create needed directories
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-        
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+    make_dir(data_dir)
+    make_dir(out_dir)
     
     args = parser.parse_args()
     
