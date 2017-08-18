@@ -7,9 +7,26 @@ from reddit.account import Account
 from bs4 import BeautifulSoup
 from config import *
 
+#relative data directory for storing all generated files
+data_dir = "data"
 
+
+def print_text(text, indentation):
+    print((" " * indentation) + text)
+    
+    
+#print with bullet point in front
+def print_bullet_point(text, indentation):
+    print_text("* " + text, indentation)
+    
+    
+# removes all whitespaces and replaces them with single spaces
+def format_text(text):
+    return " ".join(text.split())
+
+    
 def parse_url(url):
-    summary = ''
+    summary = ""
     request = requests.get(url)
     
     if request.status_code == requests.codes.ok:   
@@ -29,13 +46,13 @@ def parse_url(url):
     
     
 def get_summary(container):
-    clean_summary = ''
+    clean_summary = ""
     summary = container.find_next("blockquote", {"class": "blockquote context"})
     
     if summary == None:
-        print("could not find patch summary")
+        print_bullet_point("No summary found", 4)
     else:
-        print("summary")
+        print_bullet_point("Summary", 4)
         clean_summary = format_text(summary.text)
         
     return clean_summary
@@ -46,9 +63,14 @@ def get_champ_changes(container):
     champion_header = container.find("h2", {"id": "patch-champions"}).parent
     champion = champion_header.next_sibling
     
+    if is_champion_change(champion):
+        print_bullet_point("Champions", 4)
+    else:
+        print_bullet_point("No champions found", 4)
+    
     while is_champion_change(champion):
         name = champion.find("h3", {"class": "change-title"})
-        print(name.text)
+        print_bullet_point(format_text(name.text), 6)
         #newline is seperate sibling, skip it
         champion = champion.next_sibling.next_sibling
     
@@ -56,11 +78,6 @@ def get_champ_changes(container):
 def is_champion_change(content):
     block = content.find("div", {"class": "patch-change-block"})
     return block != None
-    
-    
-# removes all whitespaces and replaces them with single spaces
-def format_text(text):
-    return " ".join(text.split())
   
     
 def generate_summary(summaries):
@@ -87,7 +104,7 @@ def parse():
     for year, max_number in patches.items():
         for number in range(1, max_number + 1):
             url = base_url + str(year) + str(number) + '-notes'
-            print("  * " + url)
+            print_bullet_point(url, 2)
             summaries = summaries + parse_url(url).encode("utf-8") + ' '
             
     with open("summaries", "w") as file:
@@ -112,21 +129,24 @@ def main():
     parser.add_argument('-g', '--generate', action="store_true", default=False,
                         dest='generate', help='generates patch notes out of content files')
     
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    
     args = parser.parse_args()
     
     if args.parse:
-        print('parsing patch notes')
+        print("parsing patch notes...")
         parse()
         
     if args.generate:
-        print('generate patch notes')
+        print("generating patch notes...")
         generate()
     
     # Check that the config file exists
-    if not os.path.isfile("config.py"):
-        print("config.py not found")
-        print("see config.example.py")
-        exit(1)
+    #if not os.path.isfile("config.py"):
+        #print("config.py not found")
+        #print("see config.example.py")
+        #exit(1)
 
     #account = Account(REDDIT_USERNAME, REDDIT_PASSWORD, "PGdevTest 0.1")
     #account.print_stats()
