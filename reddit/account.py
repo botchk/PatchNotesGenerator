@@ -1,7 +1,6 @@
 import praw
 
 class Account:
-    "Represents a reddit account with reddit functionality"
 
     def __init__(self, username, password, user_agent):
         self.username = username
