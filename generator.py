@@ -2,6 +2,7 @@ import os
 import markovify
 import requests
 import argparse
+import cPickle as pickle
 
 #from reddit.account import Account
 from champion import Champion
@@ -12,7 +13,8 @@ url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
-patches = {5:24, 6:24, 7:16}
+patches = {5:1}
+#patches = {5:24, 6:24, 7:16}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -79,6 +81,8 @@ def parse_champions(container):
             champion_name = format_text(name.text)
             print_bullet_point(champion_name, 6)
             champion = Champion(champion_name)
+            champion.add_description("test")
+            champion.add_summary("test2")
             champions.append(champion)
             
         #there can be a newline inbetween tags, skip it
@@ -143,12 +147,24 @@ def parse():
             
     with open(os.path.join(data_dir, "summaries"), "w") as file:
         file.write(summaries.encode("utf-8"))
+        
+    with open(os.path.join(data_dir, "champions"), "w") as file:
+        pickle.dump(champions_merged, file)
     
         
 def generate():
     summaries = ''
+    champions = {}
+
     with open(os.path.join(data_dir, "summaries"), "r") as file:
         summaries = file.read()
+        
+    with open(os.path.join(data_dir, "champions"), "r") as file:
+        champions = pickle.load(file)
+        
+    for key, champion in champions.items():
+        print(champion.name)
+        print(champion.summaries)
         
     summary = generate_summary(summaries)
     

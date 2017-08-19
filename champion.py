@@ -1,4 +1,5 @@
-class Champion:
+# TODO rename summary to short_description or stuff like that
+class Champion():
     
     def __init__(self, name):
         self.name = name
