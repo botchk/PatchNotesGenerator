@@ -3,6 +3,7 @@ import markovify
 import requests
 import argparse
 import cPickle as pickle
+import codecs
 
 #from reddit.account import Account
 from champion import Champion
@@ -14,7 +15,7 @@ url_end = '-notes'
 
 #year:highest_patch
 patches = {5:1}
-#patches = {5:24, 6:24, 7:16}
+patches = {5:24, 6:24, 7:24, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -52,8 +53,7 @@ def parse_patch(url):
             champions = parse_champions(container)
     else:
         print_text("ERROR status_code " + str(request.status_code), 4)
-      
-        
+
     return summary, champions
     
     
@@ -155,8 +155,7 @@ def parse():
 def generate():
     summaries = ''
     champions = {}
-
-    with open(os.path.join(data_dir, "summaries"), "r") as file:
+    with codecs.open(os.path.join(data_dir, "summaries"), "r", "utf-8") as file:
         summaries = file.read()
         
     with open(os.path.join(data_dir, "champions"), "r") as file:
@@ -168,7 +167,7 @@ def generate():
         
     summary = generate_summary(summaries)
     
-    with open(os.path.join(out_dir, "summary"), "w") as file:
+    with codecs.open(os.path.join(out_dir, "summary"), "w", "utf-8") as file:
         file.write(summary)
 
         
