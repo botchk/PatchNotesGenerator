@@ -4,3 +4,6 @@
 # generated data
 data
 out
+
+# cache
+__pycache__

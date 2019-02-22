@@ -2,7 +2,7 @@ import os
 import markovify
 import requests
 import argparse
-import cPickle as pickle
+import pickle as pickle
 import codecs
 
 #from reddit.account import Account
@@ -14,8 +14,8 @@ url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
-patches = {5:1}
-patches = {5:24, 6:24, 7:24, 8:24, 9:4}
+patches = {5:24}
+# patches = {5:24, 6:24, 7:24, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -145,10 +145,10 @@ def parse():
                     print_bullet_point("Create " + champion.name, 2)
                     champions_merged[champion.name] = champion
             
-    with open(os.path.join(data_dir, "summaries"), "w") as file:
-        file.write(summaries.encode("utf-8"))
+    with codecs.open(os.path.join(data_dir, "summaries"), "w", "utf-8") as file:
+        file.write(summaries)
         
-    with open(os.path.join(data_dir, "champions"), "w") as file:
+    with codecs.open(os.path.join(data_dir, "champions"), "wb") as file:
         pickle.dump(champions_merged, file)
     
         
@@ -158,7 +158,7 @@ def generate():
     with codecs.open(os.path.join(data_dir, "summaries"), "r", "utf-8") as file:
         summaries = file.read()
         
-    with open(os.path.join(data_dir, "champions"), "r") as file:
+    with open(os.path.join(data_dir, "champions"), "rb") as file:
         champions = pickle.load(file)
         
     for key, champion in champions.items():
