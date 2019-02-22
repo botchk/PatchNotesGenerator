@@ -2,9 +2,11 @@ import os
 import markovify
 import requests
 import argparse
+import cPickle as pickle
 import codecs
 
 #from reddit.account import Account
+from champion import Champion
 from bs4 import BeautifulSoup
 #from config import *
 
@@ -12,6 +14,7 @@ url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
+patches = {5:1}
 patches = {5:24, 6:24, 7:24, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
@@ -36,6 +39,7 @@ def format_text(text):
     
 def parse_patch(url):
     summary = ""
+    champions = []
     request = requests.get(url)
     
     if request.status_code == requests.codes.ok:   
@@ -45,47 +49,57 @@ def parse_patch(url):
         if container == None:
             print("Could not find patch-notes-container")
         else:
-            summary = get_summary(container)
-            changes = get_champ_changes(container)
-        
+            summary = parse_summary(container)
+            champions = parse_champions(container)
     else:
         print_text("ERROR status_code " + str(request.status_code), 4)
-      
-    with codecs.open(os.path.join(data_dir, "summaries"), "a", "utf-8") as file:
-        file.write(summary + " ")
+
+    return summary, champions
     
     
-def get_summary(container):
-    clean_summary = ""
+def parse_summary(container):
     summary = container.find_next("blockquote", {"class": "blockquote context"})
     
     if summary == None:
         print_bullet_point("No summary found", 4)
+        return ''
     else:
         print_bullet_point("Summary", 4)
-        clean_summary = format_text(summary.text)
-        
-    return clean_summary
+        return format_text(summary.text)
+
     
+def parse_champions(container):
+    champions = []
+    champions_header = container.find("h2", {"id": "patch-champions"}).parent
+    champion_block = champions_header.next_sibling
     
-def get_champ_changes(container):
-    clean_changes = ''
-    champion_header = container.find("h2", {"id": "patch-champions"}).parent
-    champion = champion_header.next_sibling
-    
-    #todo search until next headline because in the champion
-    #section there can also be random stuff that can then be
-    #filtered out by is_champion (hopefully)
-    
-    if not is_champion(champion):
-        print_bullet_point("No champions found", 4)
-    else:
-        print_bullet_point("Champions", 4)
-        while is_champion(champion):
-            name = champion.find("h3", {"class": "change-title"})
-            print_bullet_point(format_text(name.text), 6)
-            #newline is seperate sibling, skip it
-            champion = champion.next_sibling.next_sibling
+    while not is_header(champion_block):
+        if not is_champion(champion_block):
+            print_bullet_point("Not a champion", 6)
+        else:
+            name = champion_block.find("h3", {"class": "change-title"})
+            champion_name = format_text(name.text)
+            print_bullet_point(champion_name, 6)
+            champion = Champion(champion_name)
+            champion.add_description("test")
+            champion.add_summary("test2")
+            champions.append(champion)
+            
+        #there can be a newline inbetween tags, skip it
+        champion_block = champion_block.next_sibling
+        if champion_block == "\n":
+            champion_block = champion_block.next_sibling
+            
+    return champions
+
+
+def is_header(content):
+    return content.name == "header"
+
+            
+#def is_champion_header(content):
+#    header = content.find("h2", {"id": "patch-champions"})
+#    return header != None
     
         
 def is_champion(content):
@@ -112,18 +126,44 @@ def generate_summary(summaries):
 def parse():
     print("cleaning data directory...")
     clean_dir(data_dir)
+    
+    champions_merged = {}
+    summaries = ""
             
     for year, max_number in patches.items():
         for number in range(1, max_number + 1):
             url = url_start + str(year) + str(number) + url_end
             print_bullet_point(url, 2)
-            parse_patch(url)
+            summary, champions = parse_patch(url)
+            summaries += summary + " "
+            for champion in champions:
+                if champion.name in champions_merged:
+                    # merge champion into existing champion
+                    print_bullet_point("Merge " + champion.name, 2)
+                else:
+                    # create first champion in dict
+                    print_bullet_point("Create " + champion.name, 2)
+                    champions_merged[champion.name] = champion
+            
+    with open(os.path.join(data_dir, "summaries"), "w") as file:
+        file.write(summaries.encode("utf-8"))
+        
+    with open(os.path.join(data_dir, "champions"), "w") as file:
+        pickle.dump(champions_merged, file)
     
         
 def generate():
     summaries = ''
+    champions = {}
     with codecs.open(os.path.join(data_dir, "summaries"), "r", "utf-8") as file:
         summaries = file.read()
+        
+    with open(os.path.join(data_dir, "champions"), "r") as file:
+        champions = pickle.load(file)
+        
+    for key, champion in champions.items():
+        print(champion.name)
+        print(champion.summaries)
         
     summary = generate_summary(summaries)
     
@@ -144,6 +184,13 @@ def clean_dir(dir):
         os.unlink(os.path.join(dir, file))
         
         
+#creates directory if it does not exist already
+def make_dir(dir):
+    if not os.path.exists(dir):
+        print("create directory " + dir)
+        os.makedirs(dir) 
+        
+        
 def main(): 
     parser = argparse.ArgumentParser(description='League of Legends patch notes generator')
     parser.add_argument('-c', '--clean', action="store_true", default=False,
@@ -153,12 +200,8 @@ def main():
     parser.add_argument('-g', '--generate', action="store_true", default=False,
                         dest='generate', help='generates patch notes out of content files')
     
-    #create needed directories
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-        
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+    make_dir(data_dir)
+    make_dir(out_dir)
     
     args = parser.parse_args()
     
