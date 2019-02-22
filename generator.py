@@ -5,7 +5,7 @@ import argparse
 import pickle as pickle
 import codecs
 
-from champion import Champion
+from .champion import Champion
 from bs4 import BeautifulSoup
 
 url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
