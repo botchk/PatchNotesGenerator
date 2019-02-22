@@ -5,10 +5,8 @@ import argparse
 import pickle as pickle
 import codecs
 
-#from reddit.account import Account
 from champion import Champion
 from bs4 import BeautifulSoup
-#from config import *
 
 url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
@@ -217,17 +215,6 @@ def main():
         print("generating patch notes...")
         generate()
     
-    # Check that the config file exists
-    #if not os.path.isfile("config.py"):
-        #print("config.py not found")
-        #print("see config.example.py")
-        #exit(1)
-
-    #account = Account(REDDIT_USERNAME, REDDIT_PASSWORD, "PGdevTest 0.1")
-    #account.print_stats()
-
-    #account.post_text_submission("test", "this is a test", "text test")
-    #submission = account.post_url_submission("test", "this is a test", "http://imgur.com/gallery/eydpv2P")
 
 if __name__ == "__main__":
     main()
