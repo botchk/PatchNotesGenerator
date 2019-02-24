@@ -1,9 +1,10 @@
 import os
 import markovify
-import pickle as pickle
 import codecs
+import json
 
 from champion import Champion
+from champion import deserialize
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -39,15 +40,18 @@ def generate_summary(summaries):
 def main(): 
     summaries = ''
     champions = {}
+    loaded_champions = {}
+
     with codecs.open(os.path.join(data_dir, "summaries"), "r", "utf-8") as file:
         summaries = file.read()
+    
+    with codecs.open(os.path.join(data_dir, "champions"), "r", "utf-8") as file:
+        loaded_champions = json.load(file)
         
-    with open(os.path.join(data_dir, "champions"), "rb") as file:
-        champions = pickle.load(file)
-        
-    for key, champion in champions.items():
-        print(champion.name)
-        print(champion.summaries)
+    for key, loaded_champion in loaded_champions.items():
+        champions[key] = deserialize(loaded_champion)
+        print(champions[key].name)
+        print(champions[key].summaries)
         
     summary = generate_summary(summaries)
     

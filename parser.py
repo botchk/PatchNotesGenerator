@@ -2,10 +2,11 @@ import os
 import markovify
 import requests
 import argparse
-import pickle as pickle
 import codecs
+import json
 
 from champion import Champion
+from champion import serialize
 from bs4 import BeautifulSoup
 
 url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
@@ -134,8 +135,8 @@ def main():
     with codecs.open(os.path.join(data_dir, "summaries"), "w", "utf-8") as file:
         file.write(summaries)
         
-    with codecs.open(os.path.join(data_dir, "champions"), "wb") as file:
-        pickle.dump(champions_merged, file)
+    with codecs.open(os.path.join(data_dir, "champions"), "w", "utf-8") as file:
+        json.dump(champions_merged, file, default=serialize)
     
 
 if __name__ == "__main__":
