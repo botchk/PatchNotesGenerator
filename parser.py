@@ -6,15 +6,16 @@ import codecs
 import json
 
 from champion import Champion
-from champion import serialize
+from champion import serialize as champion_serialize
 from bs4 import BeautifulSoup
 
 url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
-patches = {5:24}
-# patches = {5:24, 6:24, 7:24, 8:24, 9:4}
+#patches = {5:2}
+patches = {7:22}
+#patches = {5:24, 6:24, 7:24, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -74,12 +75,18 @@ def parse_champions(container):
         if not is_champion(champion_block):
             print_bullet_point("Not a champion", 6)
         else:
-            name = champion_block.find("h3", {"class": "change-title"})
-            champion_name = format_text(name.text)
-            print_bullet_point(champion_name, 6)
-            champion = Champion(champion_name)
-            champion.add_description("test")
-            champion.add_summary("test2")
+            name_block = champion_block.find("h3", {"class": "change-title"})
+            champion = Champion(format_text(name_block.text))
+            print_bullet_point(champion.name, 6)
+
+            summary_block = champion_block.find("p", {"class": "summary"})
+            if summary_block != None:
+                champion.add_summary(format_text(summary_block.text))
+
+            description_block = champion_block.find("blockquote", {"class": "blockquote context"})
+            if description_block != None:
+                champion.add_description(format_text(description_block.text))
+
             champions.append(champion)
             
         #there can be a newline inbetween tags, skip it
@@ -92,11 +99,6 @@ def parse_champions(container):
 
 def is_header(content):
     return content.name == "header"
-
-            
-#def is_champion_header(content):
-#    header = content.find("h2", {"id": "patch-champions"})
-#    return header != None
     
         
 def is_champion(content):
@@ -124,10 +126,10 @@ def main():
             summaries += summary + " "
             for champion in champions:
                 if champion.name in champions_merged:
-                    # merge champion into existing champion
                     print_bullet_point("Merge " + champion.name, 2)
+                    champions_merged[champion.name].add_description(champion.descriptions)
+                    champions_merged[champion.name].add_summary(champion.summaries)
                 else:
-                    # create first champion in dict
                     print_bullet_point("Create " + champion.name, 2)
                     champions_merged[champion.name] = champion
             print()
@@ -136,7 +138,7 @@ def main():
         file.write(summaries)
         
     with codecs.open(os.path.join(data_dir, "champions"), "w", "utf-8") as file:
-        json.dump(champions_merged, file, default=serialize)
+        json.dump(champions_merged, file, default=champion_serialize, indent=4)
     
 
 if __name__ == "__main__":
