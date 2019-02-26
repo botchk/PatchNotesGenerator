@@ -14,8 +14,7 @@ url_end = '-notes'
 
 #year:highest_patch
 #patches = {5:2}
-patches = {7:22}
-#patches = {5:24, 6:24, 7:24, 8:24, 9:4}
+patches = {5:24, 6:24, 7:21, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -31,8 +30,11 @@ def print_bullet_point(text, indentation):
     
     
 # removes all whitespaces and replaces them with single spaces
-def format_text(text):
-    return " ".join(text.split())
+# also replace different kind of apostrophs for easier handling
+def cleanup_text(text):
+    clean_text = " ".join(text.split())
+    clean_text = clean_text.replace("’", "'")
+    return clean_text.replace("‘", "'")
 
     
 def parse_patch(url):
@@ -63,7 +65,7 @@ def parse_summary(container):
         return ''
     else:
         print_bullet_point("Summary", 4)
-        return format_text(summary.text)
+        return cleanup_text(summary.text)
 
     
 def parse_champions(container):
@@ -76,16 +78,16 @@ def parse_champions(container):
             print_bullet_point("Not a champion", 6)
         else:
             name_block = champion_block.find("h3", {"class": "change-title"})
-            champion = Champion(format_text(name_block.text))
+            champion = Champion(cleanup_text(name_block.text))
             print_bullet_point(champion.name, 6)
 
             summary_block = champion_block.find("p", {"class": "summary"})
             if summary_block != None:
-                champion.add_summary(format_text(summary_block.text))
+                champion.add_summary(cleanup_text(summary_block.text))
 
             description_block = champion_block.find("blockquote", {"class": "blockquote context"})
             if description_block != None:
-                champion.add_description(format_text(description_block.text))
+                champion.add_description(cleanup_text(description_block.text))
 
             champions.append(champion)
             
