@@ -14,7 +14,7 @@ url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
-#patch_numbers = {5:2}
+#patch_numbers = {3:2}
 patch_numbers = {5:24, 6:24, 7:21, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
@@ -39,6 +39,7 @@ def cleanup_text(text):
 
     
 def parse_patch(number):
+    patch = None
     url = url_start + number + url_end
     print_bullet_point(url, 2)
 
@@ -49,13 +50,13 @@ def parse_patch(number):
         container = soup.find("div", {"id": "patch-notes-container"})
         
         if container == None:
-            print("Could not find patch-notes-container")
+            print_bullet_point("ERROR: Could not find patch-notes-container", 4)
         else:
             patch_summary = parse_summary(container)
             patch = Patch(number, patch_summary)
             patch.champions = parse_champions(container)
     else:
-        print_text("ERROR status_code " + str(request.status_code), 4)
+        print_bullet_point("ERROR: status_code " + str(request.status_code), 4)
 
     return patch
     
@@ -108,24 +109,17 @@ def is_header(content):
         
 def is_champion(content):
     block = content.find("div", {"class": "patch-change-block"})
-    return block != None
-  
-
-def clean_dir(dir):
-    for file in os.listdir(dir):
-        os.unlink(os.path.join(dir, file))        
+    return block != None       
 
 
-def main(): 
-    print("Cleaning data directory...")
-    clean_dir(data_dir)
-    
+def main():     
     patches = {}
             
     for year, max_number in patch_numbers.items():
         for number in range(1, max_number + 1):
             patch = parse_patch(str(year) + str(number))
-            patches[patch.number] = patch
+            if patch:
+                patches[patch.number] = patch
             print()
         
     with codecs.open(os.path.join(data_dir, "patches"), "w", "utf-8") as file:
