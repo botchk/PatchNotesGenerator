@@ -1,8 +1,8 @@
 class Patch():
     
-    def __init__(self, version):
-        self.version = version
-        self.summary = ""
+    def __init__(self, number, summary):
+        self.number = number
+        self.summary = summary
         self.champions = {}
         
     def add_champion(self, champion):

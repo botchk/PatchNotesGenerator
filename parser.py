@@ -5,16 +5,17 @@ import argparse
 import codecs
 import json
 
-from champion import Champion
-from champion import serialize as champion_serialize
+from patch import Patch
+from patch import Champion
+from patch import serialize as patch_serialize
 from bs4 import BeautifulSoup
 
 url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
 url_end = '-notes'
 
 #year:highest_patch
-#patches = {5:2}
-patches = {5:24, 6:24, 7:21, 8:24, 9:4}
+#patch_numbers = {5:2}
+patch_numbers = {5:24, 6:24, 7:21, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
 data_dir = "data"
@@ -37,9 +38,10 @@ def cleanup_text(text):
     return clean_text.replace("‘", "'")
 
     
-def parse_patch(url):
-    summary = ""
-    champions = []
+def parse_patch(number):
+    url = url_start + number + url_end
+    print_bullet_point(url, 2)
+
     request = requests.get(url)
     
     if request.status_code == requests.codes.ok:   
@@ -49,12 +51,13 @@ def parse_patch(url):
         if container == None:
             print("Could not find patch-notes-container")
         else:
-            summary = parse_summary(container)
-            champions = parse_champions(container)
+            patch_summary = parse_summary(container)
+            patch = Patch(number, patch_summary)
+            patch.champions = parse_champions(container)
     else:
         print_text("ERROR status_code " + str(request.status_code), 4)
 
-    return summary, champions
+    return patch
     
     
 def parse_summary(container):
@@ -83,11 +86,11 @@ def parse_champions(container):
 
             summary_block = champion_block.find("p", {"class": "summary"})
             if summary_block != None:
-                champion.add_summary(cleanup_text(summary_block.text))
+                champion.summary = cleanup_text(summary_block.text)
 
             description_block = champion_block.find("blockquote", {"class": "blockquote context"})
             if description_block != None:
-                champion.add_description(cleanup_text(description_block.text))
+                champion.description = cleanup_text(description_block.text)
 
             champions.append(champion)
             
@@ -117,30 +120,16 @@ def main():
     print("Cleaning data directory...")
     clean_dir(data_dir)
     
-    champions_merged = {}
-    summaries = ""
+    patches = {}
             
-    for year, max_number in patches.items():
+    for year, max_number in patch_numbers.items():
         for number in range(1, max_number + 1):
-            url = url_start + str(year) + str(number) + url_end
-            print_bullet_point(url, 2)
-            summary, champions = parse_patch(url)
-            summaries += summary + " "
-            for champion in champions:
-                if champion.name in champions_merged:
-                    print_bullet_point("Merge " + champion.name, 2)
-                    champions_merged[champion.name].add_description(champion.descriptions)
-                    champions_merged[champion.name].add_summary(champion.summaries)
-                else:
-                    print_bullet_point("Create " + champion.name, 2)
-                    champions_merged[champion.name] = champion
+            patch = parse_patch(str(year) + str(number))
+            patches[patch.number] = patch
             print()
-            
-    with codecs.open(os.path.join(data_dir, "summaries"), "w", "utf-8") as file:
-        file.write(summaries)
         
-    with codecs.open(os.path.join(data_dir, "champions"), "w", "utf-8") as file:
-        json.dump(champions_merged, file, default=champion_serialize, indent=4)
+    with codecs.open(os.path.join(data_dir, "patches"), "w", "utf-8") as file:
+        json.dump(patches, file, default=patch_serialize, indent=4)
     
 
 if __name__ == "__main__":
