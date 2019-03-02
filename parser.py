@@ -85,16 +85,16 @@ def parse_champions(container):
             champion = Champion(cleanup_text(name_block.text))
             print_bullet_point(champion.name, 6)
 
-            summary_block = champion_block.find("p", {"class": "summary"})
+            short_summary_block = champion_block.find("p", {"class": "summary"})
+            if short_summary_block != None:
+                champion.short_summary = cleanup_text(short_summary_block.text)
+
+            summary_block = champion_block.find("blockquote", {"class": "blockquote context"})
             if summary_block != None:
                 champion.summary = cleanup_text(summary_block.text)
 
-            description_block = champion_block.find("blockquote", {"class": "blockquote context"})
-            if description_block != None:
-                champion.description = cleanup_text(description_block.text)
-
             champions.append(champion)
-            
+
         #there can be a newline inbetween tags, skip it
         champion_block = champion_block.next_sibling
         if champion_block == "\n":

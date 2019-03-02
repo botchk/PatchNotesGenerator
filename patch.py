@@ -13,8 +13,8 @@ class Champion():
     
     def __init__(self, name):
         self.name = name
+        self.short_summary = ""
         self.summary = ""
-        self.description = ""
 
 
 def serialize(obj):

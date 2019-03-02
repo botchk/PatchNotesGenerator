@@ -22,13 +22,13 @@ def print_bullet_point(text, indentation):
     print_text("* " + text, indentation)
   
     
-def generate_summary(summaries):
+def generate_patch_summary(summaries):
     summary = ''
     welcome_model = markovify.Text(summaries, state_size=2)
     summary = welcome_model.make_sentence_with_start('Welcome')
     
     corpus_model = markovify.Text(summaries, state_size=2)
-    for i in range(1,20):
+    for _ in range(1,20):
         sentence = corpus_model.make_sentence()
         while sentence == None or "Welcome" in sentence:
             sentence = corpus_model.make_sentence()
@@ -39,16 +39,12 @@ def generate_summary(summaries):
 
 
 def generate_sentence(input, attempts, state_size):
-    if input:
-        sentence = ''
-        repeat = 0
-        while not sentence and attempts > 0:
-            model = markovify.Text(input, state_size=state_size)
-            sentence = model.make_sentence()
-            attempts-=1
-        return sentence
-    else:
-        return ''
+    sentence = ''
+    model = markovify.Text(input, state_size=state_size)
+    while not sentence and attempts > 0:
+        sentence = model.make_sentence()
+        attempts -= 1
+    return sentence
 
         
 def main(): 
@@ -63,18 +59,18 @@ def main():
         summaries += patch['summary']
         for champion in patch['champions']:
             if champion['name'] in merged_champions:
+                merged_champions[champion['name']].short_summary += ' ' + champion['short_summary']
                 merged_champions[champion['name']].summary += ' ' + champion['summary']
-                merged_champions[champion['name']].description += ' ' + champion['description']
             else:
                 merged_champions[champion['name']] = Champion(champion['name'])
+                merged_champions[champion['name']].short_summary = champion['short_summary']
                 merged_champions[champion['name']].summary = champion['summary']
-                merged_champions[champion['name']].description = champion['description']
 
-    summary = generate_summary(summaries)
+    summary = generate_patch_summary(summaries)
 
     for champion in merged_champions.values():
-        champion.summary = generate_sentence(champion.summary, 20, 1)
-        champion.description = generate_sentence(champion.description, 15, 2)
+        champion.short_summary = generate_sentence(champion.short_summary, 20, 1)
+        champion.summary = generate_sentence(champion.summary, 15, 2)
 
     generated_patch = Patch('generated', summary)
     generated_patch.champions = merged_champions
