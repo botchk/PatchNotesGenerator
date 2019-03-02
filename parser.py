@@ -1,9 +1,7 @@
 import os
-import markovify
-import requests
-import argparse
 import codecs
 import json
+import requests
 
 from patch import Patch
 from patch import Champion
@@ -23,13 +21,13 @@ data_dir = "data"
 
 def print_text(text, indentation):
     print((" " * indentation) + text)
-    
-    
+
+
 #print with bullet point in front
 def print_bullet_point(text, indentation):
     print_text("* " + text, indentation)
-    
-    
+
+
 # removes all whitespaces and replaces them with single spaces
 # also replace different kind of apostrophs for easier handling
 def cleanup_text(text):
@@ -37,19 +35,19 @@ def cleanup_text(text):
     clean_text = clean_text.replace("’", "'")
     return clean_text.replace("‘", "'")
 
-    
+
 def parse_patch(number):
     patch = None
     url = url_start + number + url_end
     print_bullet_point(url, 2)
 
     request = requests.get(url)
-    
-    if request.status_code == requests.codes.ok:   
+
+    if request.status_code == requests.codes.ok:
         soup = BeautifulSoup(request.text, "html.parser")
         container = soup.find("div", {"id": "patch-notes-container"})
-        
-        if container == None:
+
+        if container is None:
             print_bullet_point("ERROR: Could not find patch-notes-container", 4)
         else:
             patch_summary = parse_summary(container)
@@ -59,24 +57,24 @@ def parse_patch(number):
         print_bullet_point("ERROR: status_code " + str(request.status_code), 4)
 
     return patch
-    
-    
+
+
 def parse_summary(container):
     summary = container.find_next("blockquote", {"class": "blockquote context"})
-    
-    if summary == None:
+
+    if summary is None:
         print_bullet_point("No summary found", 4)
         return ''
     else:
         print_bullet_point("Summary", 4)
         return cleanup_text(summary.text)
 
-    
+
 def parse_champions(container):
     champions = []
     champions_header = container.find("h2", {"id": "patch-champions"}).parent
     champion_block = champions_header.next_sibling
-    
+
     while not is_header(champion_block):
         if not is_champion(champion_block):
             print_bullet_point("Not a champion", 6)
@@ -99,33 +97,32 @@ def parse_champions(container):
         champion_block = champion_block.next_sibling
         if champion_block == "\n":
             champion_block = champion_block.next_sibling
-            
+
     return champions
 
 
 def is_header(content):
     return content.name == "header"
-    
-        
+
+
 def is_champion(content):
     block = content.find("div", {"class": "patch-change-block"})
-    return block != None       
+    return block != None
 
 
 def main():     
     patches = {}
-            
+
     for year, max_number in patch_numbers.items():
         for number in range(1, max_number + 1):
             patch = parse_patch(str(year) + str(number))
             if patch:
                 patches[patch.number] = patch
             print()
-        
+
     with codecs.open(os.path.join(data_dir, "patches"), "w", "utf-8") as file:
         json.dump(patches, file, default=patch_serialize, indent=4)
-    
+
 
 if __name__ == "__main__":
     main()
-
