@@ -17,3 +17,6 @@ Patches with different formatting and urls:
 
 3.5 - 4.9 old format
 4.10+ new format
+
+* Merge duplicate code from modules
+* Somehow microservice it up

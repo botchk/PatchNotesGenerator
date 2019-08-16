@@ -1,22 +1,25 @@
+"Parses League of Legends patch websites and stores the results in json"
+
 import os
 import codecs
 import json
 import requests
+from bs4 import BeautifulSoup
 
 from patch import Patch
 from patch import Champion
 from patch import serialize as patch_serialize
-from bs4 import BeautifulSoup
 
-url_start = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
-url_end = '-notes'
+
+URL_START = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
+URL_END = '-notes'
 
 #year:highest_patch
 #patch_numbers = {3:2}
-patch_numbers = {5:24, 6:24, 7:21, 8:24, 9:4}
+PATCH_NUMBERS = {5:24, 6:24, 7:21, 8:24, 9:4}
 
 #relative data directory for storing parsed patches
-data_dir = "data"
+DATA_DIR = "data"
 
 
 def print_text(text, indentation):
@@ -38,7 +41,7 @@ def cleanup_text(text):
 
 def parse_patch(number):
     patch = None
-    url = url_start + number + url_end
+    url = URL_START + number + URL_END
     print_bullet_point(url, 2)
 
     request = requests.get(url)
@@ -65,9 +68,9 @@ def parse_summary(container):
     if summary is None:
         print_bullet_point("No summary found", 4)
         return ''
-    else:
-        print_bullet_point("Summary", 4)
-        return cleanup_text(summary.text)
+
+    print_bullet_point("Summary", 4)
+    return cleanup_text(summary.text)
 
 
 def parse_champions(container):
@@ -77,18 +80,18 @@ def parse_champions(container):
 
     while not is_header(champion_block):
         if not is_champion(champion_block):
-            print_bullet_point("Not a champion", 6)
+            print_bullet_point("Not a champion block", 6)
         else:
             name_block = champion_block.find("h3", {"class": "change-title"})
             champion = Champion(cleanup_text(name_block.text))
             print_bullet_point(champion.name, 6)
 
             short_summary_block = champion_block.find("p", {"class": "summary"})
-            if short_summary_block != None:
+            if short_summary_block is not None:
                 champion.short_summary = cleanup_text(short_summary_block.text)
 
             summary_block = champion_block.find("blockquote", {"class": "blockquote context"})
-            if summary_block != None:
+            if summary_block is not None:
                 champion.summary = cleanup_text(summary_block.text)
 
             champions.append(champion)
@@ -107,20 +110,20 @@ def is_header(content):
 
 def is_champion(content):
     block = content.find("div", {"class": "patch-change-block"})
-    return block != None
+    return block is not None
 
 
-def main():     
+def main():
     patches = {}
 
-    for year, max_number in patch_numbers.items():
+    for year, max_number in PATCH_NUMBERS.items():
         for number in range(1, max_number + 1):
             patch = parse_patch(str(year) + str(number))
             if patch:
                 patches[patch.number] = patch
             print()
 
-    with codecs.open(os.path.join(data_dir, "patches"), "w", "utf-8") as file:
+    with codecs.open(os.path.join(DATA_DIR, "patches"), "w", "utf-8") as file:
         json.dump(patches, file, default=patch_serialize, indent=4)
 
 
