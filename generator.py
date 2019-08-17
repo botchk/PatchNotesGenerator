@@ -73,7 +73,8 @@ def main():
     summary = generate_patch_summary(summaries)
 
     for champion in merged_champions.values():
-        # champion.short_summary = generate_sentence(champion.short_summary, 20, 1) TODO short_summary is currently always empty
+        # TODO short_summary is currently always empty
+        # champion.short_summary = generate_sentence(champion.short_summary, 20, 1)
         champion.summary = generate_sentence(champion.summary, 15, 2)
 
     generated_patch = Patch('generated', summary)

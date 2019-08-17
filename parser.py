@@ -11,13 +11,6 @@ from patch import Champion
 from patch import serialize as patch_serialize
 
 
-URL_START = 'http://euw.leagueoflegends.com/en/news/game-updates/patch/patch-'
-URL_END = '-notes'
-
-#year:highest_patch
-#patch_numbers = {3:2}
-PATCH_NUMBERS = {5:24, 6:24, 7:21, 8:24, 9:4}
-
 #relative data directory for storing parsed patches
 DATA_DIR = "data"
 
@@ -39,25 +32,26 @@ def cleanup_text(text):
     return clean_text.replace("‘", "'")
 
 
-def parse_patch(number):
+def parse_patch(number, url, patch_format):
     patch = None
-    url = URL_START + number + URL_END
-    print_bullet_point(url, 2)
 
-    request = requests.get(url)
+    if patch_format == "2":
+        request = requests.get(url)
 
-    if request.status_code == requests.codes.ok:
-        soup = BeautifulSoup(request.text, "html.parser")
-        container = soup.find("div", {"id": "patch-notes-container"})
+        if request.status_code == requests.codes.ok:
+            soup = BeautifulSoup(request.text, "html.parser")
+            container = soup.find("div", {"id": "patch-notes-container"})
 
-        if container is None:
-            print_bullet_point("ERROR: Could not find patch-notes-container", 4)
+            if container is None:
+                print_bullet_point("ERROR: Could not find patch-notes-container", 4)
+            else:
+                patch_summary = parse_summary(container)
+                patch = Patch(number, patch_summary)
+                patch.champions = parse_champions(container)
         else:
-            patch_summary = parse_summary(container)
-            patch = Patch(number, patch_summary)
-            patch.champions = parse_champions(container)
+            print_bullet_point("ERROR: status_code " + str(request.status_code), 4)
     else:
-        print_bullet_point("ERROR: status_code " + str(request.status_code), 4)
+        print_bullet_point("Unknown patch format {}".format(patch_format), 4)
 
     return patch
 
@@ -114,14 +108,26 @@ def is_champion(content):
 
 
 def main():
+
     patches = {}
 
-    for year, max_number in PATCH_NUMBERS.items():
-        for number in range(1, max_number + 1):
-            patch = parse_patch(str(year) + str(number))
-            if patch:
-                patches[patch.number] = patch
-            print()
+    with open("parser_config", "r") as config:
+        for line in config.read().splitlines():
+            patch_format, major, minor_range, url = line.split(";")
+
+            # minor can be either a single number or a range (e.g. 1-4)
+            minor_min = minor_max = int(minor_range.split("-")[0])
+            if "-" in minor_range:
+                minor_min, minor_max = [int(x) for x in minor_range.split("-")]
+
+            for minor in range(minor_min, minor_max + 1):
+                number = str(major) + str(minor)
+                formatted_url = url.format(number)
+                print_bullet_point("Patch {}.{} (Format: {}) - {}".format(major, minor, patch_format, formatted_url), 2)
+                patch = parse_patch(number, formatted_url, patch_format)
+                if patch:
+                    patches[patch.number] = patch
+                print()
 
     with codecs.open(os.path.join(DATA_DIR, "patches"), "w", "utf-8") as file:
         json.dump(patches, file, default=patch_serialize, indent=4)
