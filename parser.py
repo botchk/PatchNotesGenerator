@@ -1,18 +1,15 @@
-"Parses League of Legends patch websites and stores the results in json"
+"Parses League of Legends patch notes and stores the results as json"
 
 import os
 import codecs
 import json
+import argparse
 import requests
 from bs4 import BeautifulSoup
 
 from patch import Patch
 from patch import Champion
 from patch import serialize as patch_serialize
-
-
-#relative data directory for storing parsed patches
-DATA_DIR = "data"
 
 
 def print_text(text, indentation):
@@ -61,7 +58,7 @@ def parse_summary(container):
 
     if summary is None:
         print_bullet_point("No summary found", 4)
-        return ''
+        return ""
 
     print_bullet_point("Summary", 4)
     return cleanup_text(summary.text)
@@ -107,11 +104,29 @@ def is_champion(content):
     return block is not None
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Parses League of Legends patch notes and stores the results as json")
+    parser.add_argument(
+        "config",
+        type=str,
+        help="Configuration file that specifies the patch URLs")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="patches.json",
+        help="Output file, default is 'patches.json'")
+
+    args = parser.parse_args()
+    return args
+
+
 def main():
 
+    args = parse_arguments()
     patches = {}
 
-    with open("parser_config", "r") as config:
+    with open(args.config, "r") as config:
         for line in config.read().splitlines():
             patch_format, major, minor_range, url = line.split(";")
 
@@ -129,7 +144,7 @@ def main():
                     patches[patch.number] = patch
                 print()
 
-    with codecs.open(os.path.join(DATA_DIR, "patches"), "w", "utf-8") as file:
+    with codecs.open(args.output, "w", "utf-8") as file:
         json.dump(patches, file, default=patch_serialize, indent=4)
 
 
