@@ -1,6 +1,5 @@
 "Parses League of Legends patch notes and stores the results as json"
 
-import os
 import codecs
 import json
 import argparse
@@ -16,14 +15,15 @@ def print_text(text, indentation):
     print((" " * indentation) + text)
 
 
-#print with bullet point in front
 def print_bullet_point(text, indentation):
     print_text("* " + text, indentation)
 
 
-# removes all whitespaces and replaces them with single spaces
-# also replace different kind of apostrophs for easier handling
 def cleanup_text(text):
+    """
+    Removes all whitespaces and replaces them with single spaces.
+    Also replace different kind of apostrophs for easier handling
+    """
     clean_text = " ".join(text.split())
     clean_text = clean_text.replace("’", "'")
     return clean_text.replace("‘", "'")
@@ -32,7 +32,7 @@ def cleanup_text(text):
 def parse_patch(number, url, patch_format):
     patch = None
 
-    if patch_format == "2":
+    if patch_format in ("2", "3"):
         request = requests.get(url)
 
         if request.status_code == requests.codes.ok:
@@ -42,9 +42,23 @@ def parse_patch(number, url, patch_format):
             if container is None:
                 print_bullet_point("ERROR: Could not find patch-notes-container", 4)
             else:
+                print_bullet_point("Summary", 4)
                 patch_summary = parse_summary(container)
                 patch = Patch(number, patch_summary)
-                patch.champions = parse_champions(container)
+
+                print_bullet_point("Champions", 4)
+                if patch_format == "3":
+                    patch.champions = parse_champions(
+                        container.find("h2", {"id": "patch-fighters"}).parent)
+                    patch.champions = parse_champions(
+                        container.find("h2", {"id": "patch-mages-and-assassins"}).parent)
+                    patch.champions = parse_champions(
+                        container.find("h2", {"id": "patch-marksmen"}).parent)
+                    patch.champions = parse_champions(
+                        container.find("h2", {"id": "patch-supports"}).parent)
+                else:
+                    patch.champions = parse_champions(
+                        container.find("h2", {"id": "patch-champions"}).parent)
         else:
             print_bullet_point("ERROR: status_code " + str(request.status_code), 4)
     else:
@@ -57,16 +71,14 @@ def parse_summary(container):
     summary = container.find_next("blockquote", {"class": "blockquote context"})
 
     if summary is None:
-        print_bullet_point("No summary found", 4)
+        print_bullet_point("No summary found", 6)
         return ""
 
-    print_bullet_point("Summary", 4)
     return cleanup_text(summary.text)
 
 
-def parse_champions(container):
+def parse_champions(champions_header):
     champions = []
-    champions_header = container.find("h2", {"id": "patch-champions"}).parent
     champion_block = champions_header.next_sibling
 
     while not is_header(champion_block):
@@ -105,11 +117,14 @@ def is_champion(content):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Parses League of Legends patch notes and stores the results as json")
+    parser = argparse.ArgumentParser(
+        description="Parses League of Legends patch notes and stores the results as json")
+
     parser.add_argument(
         "config",
         type=str,
         help="Configuration file that specifies the patch URLs")
+
     parser.add_argument(
         "-o",
         "--output",
@@ -122,7 +137,6 @@ def parse_arguments():
 
 
 def main():
-
     args = parse_arguments()
     patches = {}
 

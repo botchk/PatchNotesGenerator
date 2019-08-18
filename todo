@@ -1,10 +1,9 @@
 parser:
+* Fix parsing for patch 9.14
 * Add error handling for patch parsing, so a single failed patch does not kill the whole parsing
 * Add option for parsing selected patches and appending/replacing them to an existing patch json failed
 * Implement parsing for patch format 1
-* Allow specification of output file, existing files get overwritten or appended if specified
-  * data_dir must not be global var anymore
-  * if output file not specified, write into local dir as patch-timestamp ?
+  * Split up parse_patch method so that it does not have so many indentations
 * Add error handling or other method for reading parser_config
 * Add option to store downloaded html files somewhere if specified?
   * Also allow parsing of those downloaded html files
